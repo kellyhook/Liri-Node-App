@@ -1,148 +1,221 @@
-//store dependencies as variables.
-var keys = require('./keys.js');
-var twitter = require("twitter");
+var keys = require("./keys.js");
 var spotify = require("spotify");
+var twitter = require("twitter");
+// var tmdb = require("tmdb").init({apikey:"798d16e44bf2357493e013567298dcd5"});
+// var TmdbApi = require("tmdb-api");
 var request = require("request");
-var fs = require('fs');
-
-//capture user input, and inform user of what to type in.
-console.log("Type my-tweets , spotify-this-song , movie-this , or do-what-it-says to get started!");
-//process[2] choses action, process[3] as search parameter for spotify or movie.
-var userCommand = process.argv[2];
-var secondCommand = process.argv[3];
-//process multiple words. Triggers if user types anything more than the above console logged options and first parameter.
-	for(i=4; i<process.argv.length; i++){
-	    secondCommand += '+' + process.argv[i];
-	}
-
-function theGreatSwitch(){
-	//action statement, switch statement to declare what action to execute.
-	switch(userCommand){
-
-		case 'my-tweets':
-		fetchTweets();
-		break;
-
-		case 'spotify-this-song':
-		spotifyMe();
-		break;
-
-		case 'movie-this':
-		aMovieForMe();
-		break;
-
-		case 'do-what-it-says':
-		followTheTextbook();
-		break;
-		
-	}
-};
-//functions/options
-function fetchTweets(){
-	console.log("Tweets headed your way!");
-	//new variable for instance of twitter, load keys from imported keys.js
-	var client = new twitter({
-		consumer_key: keys.twitterKeys.consumer_key,
-		consumer_secret: keys.twitterKeys.consumer_secret,
-		access_token_key: keys.twitterKeys.access_token_key,
-		access_token_secret: keys.twitterKeys.access_token_secret
-	});
-
-	//parameters for twitter function.
-	var parameters = {
-		screen_name: 'multishifties',
-		count: 20
-	};
-
-	//call the get method on our client variable twitter instance
-	client.get('statuses/user_timeline', parameters, function(error, tweets, response){
-		if (!error) {
-	        for (i=0; i<tweets.length; i++) {
-	            var returnedData = ('Number: ' + (i+1) + '\n' + tweets[i].created_at + '\n' + tweets[i].text + '\n');
-	            console.log(returnedData);
-	            console.log("-------------------------");
-	        }
-	    };
-	});
-};//end fetchTweets;
-
-function spotifyMe(){
-	console.log("Music for DAYS!");
-
-	//variable for search term, test if defined.
-
-	var searchTrack;
-	if(secondCommand === undefined){
-		searchTrack = "What's My Age Again?";
-	}else{
-		searchTrack = secondCommand;
-	}
-	//launch spotify search
-	spotify.search({type:'track', query:searchTrack}, function(err,data){
-	    if(err){
-	        console.log('Error occurred: ' + err);
-	        return;
-	    }else{
-	        //tried searching for release year! Spotify doesn't return this!
-	  		console.log("Artist: " + data.tracks.items[0].artists[0].name);
-	        console.log("Song: " + data.tracks.items[0].name);
-	        console.log("Album: " + data.tracks.items[0].album.name);
-	        console.log("Preview Here: " + data.tracks.items[0].preview_url);
-	    }
-	});
-};//end spotifyMe
-
-function aMovieForMe(){
-	console.log("Netflix and Chill?");
-
-	//same as above, test if search term entered
-	var searchMovie;
-	if(secondCommand === undefined){
-		searchMovie = "Mr. Nobody";
-	}else{
-		searchMovie = secondCommand;
-	};
-
-	var url = 'http://www.omdbapi.com/?t=' + searchMovie +'&y=&plot=long&tomatoes=true&r=json';
-   	request(url, function(error, response, body){
-	    if(!error && response.statusCode == 200){
-	        console.log("Title: " + JSON.parse(body)["Title"]);
-	        console.log("Year: " + JSON.parse(body)["Year"]);
-	        console.log("IMDB Rating: " + JSON.parse(body)["imdbRating"]);
-	        console.log("Country: " + JSON.parse(body)["Country"]);
-	        console.log("Language: " + JSON.parse(body)["Language"]);
-	        console.log("Plot: " + JSON.parse(body)["Plot"]);
-	        console.log("Actors: " + JSON.parse(body)["Actors"]);
-	        console.log("Rotten Tomatoes Rating: " + JSON.parse(body)["tomatoRating"]);
-	        console.log("Rotten Tomatoes URL: " + JSON.parse(body)["tomatoURL"]);
-	    }
-    });
-};//end aMovieForMe
-
-function followTheTextbook(){
-	console.log("Looking at random.txt now");
-	fs.readFile("random.txt", "utf8", function(error, data) {
-	    if(error){
-     		console.log(error);
-     	}else{
-
-     	//split data, declare variables
-     	var dataArr = data.split(',');
-        userCommand = dataArr[0];
-        secondCommand = dataArr[1];
-        //if multi-word search term, add.
-        for(i=2; i<dataArr.length; i++){
-            secondCommand = secondCommand + "+" + dataArr[i];
-        };
-        //run action
-		theGreatSwitch();
-		
-    	};//end else
-
-    });//end readfile
-
-};//end followTheTextbook
-
-theGreatSwitch();
+var fs = require("fs");
 
 
+// console.log(twitterKeys);
+
+var nodeArgs = process.argv;
+var query = [];
+// var action = process.argv.slice(2);
+
+for (var i = 2; i < nodeArgs.length; i++) {
+
+  query.push(nodeArgs[i]);
+
+}
+
+var argOne = query.splice(0, 1);
+var argTwo = query.join(" ");
+var action = String(argOne);
+var value = String(argTwo);
+
+console.log("Searching for " + value);
+console.log("What command? " + action);
+
+
+switch (action) {
+  case "my-tweets":
+    myTweets();
+    logAction();
+    break;
+
+  case "spotify-this-song":
+    spotifyThisSong();
+    logAction();
+    break;
+
+  case "movie-this":
+    movieThis();
+    logAction();
+    break;
+
+  case "do-what-it-says":
+    doThis();
+    logAction();
+    break;
+
+}
+
+//Functions
+
+//Commands for Liri to take in...
+// * `my-tweets`
+function myTweets() {
+
+  var twitterKeys = keys.twitterKeys;
+
+  var client = new twitter({
+    consumer_key: twitterKeys.consumer_key,
+    consumer_secret: twitterKeys.consumer_secret,
+    access_token_key: twitterKeys.access_token_key,
+    access_token_secret: twitterKeys.access_token_secret
+  });
+
+  var params = {
+    screen_name: "jlp0328",
+    count: 20
+  };
+
+  client.get("statuses/user_timeline", params, function(error, tweets, response) {
+    if (error) {
+      console.log(error);
+    }
+
+    for (var i = 0; i < tweets.length; i++) {
+      console.log("************");
+      console.log(tweets[i].text);
+      console.log("************");
+    }
+
+  });
+}
+
+// * `spotify-this-song`
+function spotifyThisSong() {
+
+  spotify.search({
+    type: "track",
+    query: value
+  }, function(err, data) {
+
+    if (err) {
+      console.log("Error occurred: " + err);
+      return;
+    }
+    // * if no song is provided then your program will default to
+    //   * "The Sign" by Ace of Base
+    if (value === "") {
+      console.log("************");
+      console.log("Artist: Ace of Base");
+      console.log("Song: The Sign");
+      console.log("Song Link: https://open.spotify.com/track/0hrBpAOgrt8RXigk83LLNE");
+      console.log("Album: The Sign");
+      console.log("************");
+    } else {
+
+      for (i = 0; i < 5; i++) {
+
+        var results = data.tracks.items[i];
+
+        var artist = results.artists[0].name;
+        var songName = results.name;
+        var songLink = results.external_urls.spotify;
+        var album = results.album.name;
+
+        //Need: artist(s), song's name, preview link of song, album//
+        console.log("************");
+        console.log("Artist: " + artist);
+        console.log("Song: " + songName);
+        console.log("Song Link: " + songLink);
+        console.log("Album: " + album);
+        console.log("************");
+      }
+    }
+
+  });
+
+}
+
+// * `movie-this`
+function movieThis() {
+
+  var queryURL = "https://api.themoviedb.org/3/search/movie?api_key=798d16e44bf2357493e013567298dcd5&query=" + value;
+
+  request(queryURL, function(error, response, body) {
+
+    // If the request is successful (i.e. if the response status code is 200)
+    if (error) {
+      console.log("Error occurred: " + error);
+      return;
+    }
+
+    if (value === "") {
+
+      console.log("************");
+      console.log("Movie Name: Mr.Nobody");
+      console.log("Release Date: 2009-09-11");
+      console.log("Synopsis: Nemo Nobody leads an ordinary existence with his wife and 3 children; one day, he wakes up as a mortal centenarian in the year 2092.");
+      console.log("Average Vote: 7.9");
+      console.log("Language: en");
+      console.log("************");
+
+    } else {
+      console.log("************");
+      console.log("Movie Name: " + JSON.parse(body).results[0].title);
+      console.log("Release Date: " + JSON.parse(body).results[0].release_date);
+      console.log("Synopsis: " + JSON.parse(body).results[0].overview);
+      console.log("Average Vote: " + JSON.parse(body).results[0].vote_average);
+      console.log("Language: " + JSON.parse(body).results[0].original_language);
+      console.log("************");
+    }
+  });
+
+}
+
+// * `do-what-it-says`
+function doThis() {
+
+  // Feel free to change the text in that document to test out the feature for other commands.
+  fs.readFile("random.txt", "utf8", function(error, data) {
+
+    var content = data.split(",");
+
+    // var array = data.toString().split("\n");
+    // console.log(array);
+
+    action = content[0];
+    value = content[1];
+
+    switch (action) {
+      case "my-tweets":
+        myTweets();
+        break;
+
+      case "spotify-this-song":
+        spotifyThisSong();
+        break;
+
+      case "movie-this":
+        movieThis();
+        break;
+
+      case "do-what-it-says":
+        doThis();
+        break;
+
+    }
+
+  });
+
+}
+
+function logAction() {
+
+  var logItem = "\nSearch String:" + action + "," + value;
+  console.log(logItem);
+
+  fs.appendFile("log.txt", logItem, function(err) {
+
+    if (err) {
+      console.log(err);
+    } else {
+      console.log("Content Added!");
+    }
+
+  });
+}
